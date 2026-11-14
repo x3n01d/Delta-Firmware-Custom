@@ -1,0 +1,178 @@
+#       _      _ _        __
+#    __| | ___| | |_ __ _/ _|_      __
+#   / _` |/ _ \ | __/ _` | |_\ \ /\ / /
+#  | (_| |  __/ | || (_| |  _|\ V  V /
+#   \__,_|\___|_|\__\__,_|_|   \_/\_/
+#            deltafw configuration
+
+[project]
+name = "deltafw"
+version = "1.8.7"
+authors = ["qshosfw"]
+supported_devices = ["UV-K1", "UV-K5v3"]
+
+[build]
+# Global build settings
+cross_file = "toolchain/cross_arm.ini"
+compiler = "arm-none-eabi-gcc"
+
+# =============================================================================
+# 🏁 Build Presets
+# =============================================================================
+
+[presets.default]
+description = "✨ Standard balanced build for daily use"
+options = { EDITION_STRING = "Default" }
+
+[presets.dev]
+description = "🛠️ Developer build (Experimental, all features enabled)"
+options = { EDITION_STRING = "Dev", MESH_NETWORK = true, HERMES_MESSENGER = true, HERMES_ROUTER = true, HERMES_PING = true, HERMES_TELEMETRY = true, HERMES_DISCOVERY = true, HERMES_ACK_HEALTH = true }
+
+[presets.pro]
+description = " Professional / Security focus (No games, stealth comms)"
+options = { EDITION_STRING = "Pro", FMRADIO = false, BOOT_BEEPS = false, CUSTOM_ROGER = false, APP_BREAKOUT_GAME = false, ALARM = false }
+
+[presets.ham]
+description = "📻 Amateur Radio focus (Full features, advanced tools)"
+options = { EDITION_STRING = "Ham", SPECTRUM = true, CW_KEYER = true, DTMF_CALLING = true, TX1750 = true, NOAA = true, MESH_NETWORK = true, HERMES_MESSENGER = true, HERMES_ROUTER = true, HERMES_PING = true, HERMES_TELEMETRY = true, HERMES_DISCOVERY = true, HERMES_ACK_HEALTH = true }
+
+[presets.survive]
+description = "⛑️ Emergency & Survival focus"
+options = { EDITION_STRING = "Survive", SPECTRUM = false, FMRADIO = false, NOAA = true, RESCUE_OPERATIONS = true, FLASHLIGHT = true, ALARM = true }
+
+[presets.explorer]
+description = "📡 Signals Intelligence & Scanning"
+options = { EDITION_STRING = "Explorer", SPECTRUM = true, SPECTRUM_WATERFALL = true, FASTER_CHANNEL_SCAN = true, LIVESEEK = true, WIDE_RX = true }
+
+[presets.barebones]
+description = "🛡️ Minimal setup for maximum stability and speed"
+options = { EDITION_STRING = "Barebones", SPECTRUM = false, FMRADIO = false, NOAA = false, SERIAL_SCREENCAST = false, CRYPTO = false, PASSCODE = false, CUSTOM_ROGER = false, APP_BREAKOUT_GAME = false, VOX = false, TX_SOFT_START = false, TX_AUDIO_COMPRESSOR = false, CTCSS_LEAD_IN = false, SIGNAL_CLASSIFIER = false, SMART_SQUELCH = false, SQUELCH_TAIL_ELIMINATION = false, TX_OFFSET = false }
+
+# =============================================================================
+# ⚙️  Default Configuration (Base Options)
+# =============================================================================
+# These values are used if not overridden by a preset.
+
+[defaults]
+
+# 🎛️  Hardware / Drivers
+UART = true
+USB = true
+FLASHLIGHT = true
+BOOT_RESUME_STATE = true
+DEEP_SLEEP_MODE = true
+BK1080 = false
+
+# 🔊 Audio & Voice
+VOICE = false
+VOX = false
+ALARM = false
+TX1750 = false
+BOOT_BEEPS = false
+RSSI_BAR = true
+MIC_BAR = true
+RX_TX_TIMER_DISPLAY = true
+
+# 📟 Display & UI
+BIG_FREQ = true
+SMALL_BOLD = true
+INVERTED_LCD_MODE = true
+LCD_CONTRAST_OPTION = true
+SHOW_CHARGE_LEVEL = false
+USBC_CHARGING_INDICATOR = true
+REVERSE_BAT_SYMBOL = false
+BLMIN_TMP_OFF = false
+CUSTOM_MENU_LAYOUT = true
+SYSTEM_INFO_MENU = false
+F_CAL_MENU = false
+BATTERY_CHARGING = true
+
+# 📡 Radio Features
+FMRADIO = false
+NOAA = false
+PMR446_FREQUENCY_BAND = true
+GMRS_FRS_MURS_BANDS = true
+FREQUENCY_LOCK_REGION_CA = true
+TX_NON_FM = true
+WIDE_RX = true
+NARROWER_BW_FILTER = true
+SQUELCH_MORE_SENSITIVE = true
+CTCSS_TAIL_PHASE_SHIFT = false
+REDUCE_LOW_MID_TX_POWER = false
+BYP_RAW_DEMODULATORS = true
+SCAN_RANGES = true
+FASTER_CHANNEL_SCAN = true
+NO_CODE_SCAN_TIMEOUT = true
+KEEP_MEM_NAME = true
+COPY_CHAN_TO_VFO = true
+RESET_CHANNEL_FUNCTION = false
+AM_FIX = false
+AM_FIX_SHOW_DATA = false
+AGC_SHOW_DATA = false
+ANTENNA_SIGNAL_BAR = true
+
+# 🛠️  New Feature Toggles
+SCRAMBLER = true
+ON_DEVICE_PROGRAMMING = true # Channel Edit (Save, Delete, Rename)
+SCAN_LIST_EDITING = true     # Scan List Membership Edit
+TX_OFFSET = true             # ⚡ Vuurwerk TX / RX Features
+TX_SOFT_START = false
+TX_AUDIO_COMPRESSOR = false
+CTCSS_LEAD_IN = false
+SIGNAL_CLASSIFIER = false
+SMART_SQUELCH = false
+SQUELCH_TAIL_ELIMINATION = false
+SCAN_WATCH = false
+INTELLIGENT_DUAL_WATCH = false
+
+# 🌍  Misc Settings
+EXTRA_ROGER = true
+CUSTOM_ROGER = false
+
+# 🧩 Apps & Features
+
+SPECTRUM = false
+SPECTRUM_WATERFALL = false
+SPECTRUM_EXTENSIONS = false
+SPECTRUM_EXTRA_VALUES = false
+
+AIRCOPY = false
+SERIAL_SCREENCAST = true
+APP_BREAKOUT_GAME = false
+CW_KEYER = true
+DTMF_CALLING = false
+RESCUE_OPERATIONS = false
+LIVESEEK = false
+REGA = false
+
+######################################
+# 📶 Mesh Network :: Hermes Protocol #
+# https://qshosfw.github.io/hermes/  #
+MESH_NETWORK = false
+HERMES_MESSENGER = false
+HERMES_ROUTER = false
+HERMES_PING = false
+HERMES_TELEMETRY = false
+HERMES_DISCOVERY = false
+HERMES_ACK_HEALTH = false
+
+######################################
+
+# 🔌 UART Commands
+UART_CMD_RSSI = true
+UART_CMD_BATT = true
+UART_CMD_ID = true
+EXTRA_UART_CMD = true
+UART_RW_BK_REGS = false
+
+# ⚙️  System & Debug
+PWRON_PASSWORD = false
+CUSTOM_FIRMWARE_MODS = true
+FIRMWARE_DEBUG_LOGGING = false
+IDENTIFIER = true
+SWD = false
+CRYPTO = true
+STORAGE_ENCRYPTION = false ## Highly experimental, unreliable, CAN CORRUPT VFOS & SETTINGS!
+PASSCODE = true
+TRNG_SENSORS = true
+EEPROM_HEXDUMP = false

@@ -1,0 +1,219 @@
+/* Copyright 2023 Dual Tachyon
+ * https://github.com/DualTachyon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *     Unless required by applicable law or agreed to in writing, software
+ *     distributed under the License is distributed on an "AS IS" BASIS,
+ *     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *     See the License for the specific language governing permissions and
+ *     limitations under the License.
+ */
+
+#include <string.h>
+
+#include "drivers/bsp/py25q16.h"
+#include "drivers/bsp/st7565.h"
+#include "apps/battery/battery.h"
+#include "apps/settings/settings.h"
+#include "core/misc.h"
+#include "ui/helper.h"
+#include "apps/boot/welcome.h"
+#include "features/storage/storage.h"
+#include "ui/status.h"
+#include "core/version.h"
+#include "ui/bitmaps.h"
+
+#ifdef ENABLE_SERIAL_SCREENCAST
+    #include "features/screencast/screencast.h"
+#endif
+
+void UI_DisplayReleaseKeys(void)
+{
+    memset(gStatusLine,  0, sizeof(gStatusLine));
+#if defined(ENABLE_LCD_CONTRAST_OPTION) || defined(ENABLE_INVERTED_LCD_MODE)
+        ST7565_ContrastAndInv();
+#endif
+    UI_DisplayClear();
+
+    UI_PrintString("RELEASE", 0, 127, 1, 10);
+    UI_PrintString("ALL KEYS", 0, 127, 3, 10);
+
+    ST7565_BlitStatusLine();  // blank status line
+    ST7565_BlitFullScreen();
+}
+
+void UI_DisplayWelcome(void)
+{
+    char WelcomeString0[16];
+    char WelcomeString1[16];
+    char WelcomeString2[16];
+    char WelcomeString3[20];
+
+    memset(gStatusLine,  0, sizeof(gStatusLine));
+
+#if defined(ENABLE_LCD_CONTRAST_OPTION) || defined(ENABLE_INVERTED_LCD_MODE)
+        ST7565_ContrastAndInv();
+#endif
+    UI_DisplayClear();
+
+#ifdef ENABLE_CUSTOM_FIRMWARE_MODS
+    ST7565_BlitStatusLine();
+    ST7565_BlitFullScreen();
+    
+    if (gEeprom.POWER_ON_DISPLAY_MODE == POWER_ON_DISPLAY_MODE_NONE || gEeprom.POWER_ON_DISPLAY_MODE == POWER_ON_DISPLAY_MODE_SOUND) {
+        ST7565_FillScreen(0x00);
+#else
+    if (gEeprom.POWER_ON_DISPLAY_MODE == POWER_ON_DISPLAY_MODE_NONE || gEeprom.POWER_ON_DISPLAY_MODE == POWER_ON_DISPLAY_MODE_FULL_SCREEN) {
+        ST7565_FillScreen(0xFF);
+#endif
+    } else {
+        memset(WelcomeString0, 0, sizeof(WelcomeString0));
+        memset(WelcomeString1, 0, sizeof(WelcomeString1));
+
+        // 0x0EB0
+        Storage_ReadRecord(REC_SETTINGS_EXTRA, WelcomeString0, 0x20, 16);
+        // 0x0EC0
+        Storage_ReadRecord(REC_SETTINGS_EXTRA, WelcomeString1, 0x30, 16);
+
+        // sprintf(WelcomeString2, "%u.%02uV %u%%", ...)
+        strcpy(WelcomeString2, " .  V    %");
+        NUMBER_ToDecimal(WelcomeString2, gBatteryVoltageAverage / 100, 1, false);
+        NUMBER_ToDecimal(WelcomeString2 + 2, gBatteryVoltageAverage % 100, 2, true);
+        NUMBER_ToDecimal(WelcomeString2 + 6, BATTERY_VoltsToPercent(gBatteryVoltageAverage), 3, false);
+
+        if (gEeprom.POWER_ON_DISPLAY_MODE == POWER_ON_DISPLAY_MODE_VOLTAGE)
+        {
+            strcpy(WelcomeString0, "VOLTAGE");
+            strcpy(WelcomeString1, WelcomeString2);
+        }
+        else if(gEeprom.POWER_ON_DISPLAY_MODE == POWER_ON_DISPLAY_MODE_ALL)
+        {
+            if(strlen(WelcomeString0) == 0 && strlen(WelcomeString1) == 0)
+            {
+                strcpy(WelcomeString0, "WELCOME");
+                strcpy(WelcomeString1, WelcomeString2);
+            }
+            else if(strlen(WelcomeString0) == 0 || strlen(WelcomeString1) == 0)
+            {
+                if(strlen(WelcomeString0) == 0)
+                {
+                    strcpy(WelcomeString0, WelcomeString1);
+                }
+                strcpy(WelcomeString1, WelcomeString2);
+            }
+        }
+        else if(gEeprom.POWER_ON_DISPLAY_MODE == POWER_ON_DISPLAY_MODE_MESSAGE)
+        {
+            if(strlen(WelcomeString0) == 0)
+            {
+                strcpy(WelcomeString0, "WELCOME");
+            }
+
+            if(strlen(WelcomeString1) == 0)
+            {
+                strcpy(WelcomeString1, "BIENVENUE");
+            }
+        }
+
+        WelcomeString0[10] = 0;
+        WelcomeString1[10] = 0;
+        WelcomeString0[10] = 0;
+        WelcomeString1[10] = 0;
+        UI_PrintString(WelcomeString0, 0, 127, 0, 10);
+        UI_PrintString(WelcomeString1, 0, 127, 2, 10);
+
+#ifdef ENABLE_CUSTOM_FIRMWARE_MODS
+        UI_PrintStringSmallNormal(Version, 0, 128, 4);
+
+        UI_DrawLineBuffer(gFrameBuffer, 0, 31, 127, 31, 1); // Be ware, status zone = 8 lines, the rest = 56 ->total 64
+
+        for (uint8_t i = 18; i < 110; i++)
+        {
+            gFrameBuffer[4][i] ^= 0xFF;
+        }
+
+        // sprintf(WelcomeString3, "%s Edition", Edition);
+        strcpy(WelcomeString3, Edition);
+        strcat(WelcomeString3, " Edition");
+        UI_PrintStringSmallNormal(WelcomeString3, 0, 127, 6);
+
+        /*
+        #ifdef ENABLE_RESCUE_OPERATIONS
+            #if ENABLE_RESCUE_OPERATIONS > 1
+                UI_PrintStringSmallNormal(Edition, 18, 0, 6);
+                if(gEeprom.MENU_LOCK == true) {
+                    memcpy(gFrameBuffer[6] + 103, BITMAP_Ready, sizeof(BITMAP_Ready));
+                }
+                else
+                {
+                    memcpy(gFrameBuffer[6] + 103, BITMAP_NotReady, sizeof(BITMAP_NotReady));                    
+                }
+            #else
+                UI_PrintStringSmallNormal(Edition, 18, 0, 5);
+                memcpy(gFrameBuffer[5] + 103, BITMAP_Ready, sizeof(BITMAP_Ready));
+                
+                #ifdef ENABLE_RESCUE_OPERATIONS
+                    UI_PrintStringSmallNormal("RescueOps", 18, 0, 6);
+                    if(gEeprom.MENU_LOCK == true) {
+                        memcpy(gFrameBuffer[6] + 103, BITMAP_Ready, sizeof(BITMAP_Ready));
+                    }
+                    else
+                    {
+                        memcpy(gFrameBuffer[6] + 103, BITMAP_NotReady, sizeof(BITMAP_NotReady));
+                    }
+                #endif
+            #endif
+        #else
+            UI_PrintStringSmallNormal(Edition, 18, 0, 6);
+            memcpy(gFrameBuffer[6] + 103, BITMAP_Ready, sizeof(BITMAP_Ready));                    
+        #endif
+        */
+
+        /*
+        #ifdef ENABLE_SPECTRUM
+            #ifdef ENABLE_FMRADIO
+                    UI_PrintStringSmallNormal(Based, 0, 127, 5);
+                    UI_PrintStringSmallNormal(Credits, 0, 127, 6);
+            #else
+                    UI_PrintStringSmallNormal("Bandscope  ", 0, 127, 5);
+                    memcpy(gFrameBuffer[5] + 95, BITMAP_Ready, sizeof(BITMAP_Ready));
+
+                    #ifdef ENABLE_RESCUE_OPERATIONS
+                        UI_PrintStringSmallNormal("RescueOps  ", 0, 127, 6);
+                        if(gEeprom.MENU_LOCK == true) {
+                            memcpy(gFrameBuffer[6] + 95, BITMAP_Ready, sizeof(BITMAP_Ready));
+                        }
+                    #else
+                        UI_PrintStringSmallNormal("Broadcast  ", 0, 127, 6);
+                    #endif
+            #endif
+        #else
+            #ifdef ENABLE_RESCUE_OPERATIONS
+                UI_PrintStringSmallNormal("RescueOps  ", 0, 127, 5);
+                if(gEeprom.MENU_LOCK == true) {
+                    memcpy(gFrameBuffer[5] + 95, BITMAP_Ready, sizeof(BITMAP_Ready));
+                }
+            #else
+                UI_PrintStringSmallNormal("Bandscope  ", 0, 127, 5);
+            #endif
+            UI_PrintStringSmallNormal("Broadcast  ", 0, 127, 6);
+            memcpy(gFrameBuffer[6] + 95, BITMAP_Ready, sizeof(BITMAP_Ready));
+        #endif
+        */
+#else
+        UI_PrintStringSmallNormal(Version, 0, 127, 6);
+#endif
+
+        //ST7565_BlitStatusLine();  // blank status line : I think it's useless
+        ST7565_BlitFullScreen();
+
+        #ifdef ENABLE_SERIAL_SCREENCAST
+            getScreenShot(true);
+        #endif
+    }
+}

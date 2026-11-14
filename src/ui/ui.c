@@ -1,0 +1,143 @@
+/* Copyright 2023 Dual Tachyon
+ * https://github.com/DualTachyon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *     Unless required by applicable law or agreed to in writing, software
+ *     distributed under the License is distributed on an "AS IS" BASIS,
+ *     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *     See the License for the specific language governing permissions and
+ *     limitations under the License.
+ */
+
+#include <assert.h>
+#include <string.h>
+
+#include "apps/scanner/chFrScanner.h"
+#include "features/dtmf/dtmf.h"
+#ifdef ENABLE_FMRADIO
+    #include "apps/fm/fm.h"
+#endif
+#include "drivers/bsp/keyboard.h"
+#include "core/misc.h"
+#ifdef ENABLE_AIRCOPY
+    #include "apps/aircopy/aircopy_ui.h"
+#endif
+#ifdef ENABLE_FMRADIO
+    #include "apps/fm/fm_ui.h"
+#endif
+#ifdef ENABLE_REGA
+    #include "features/rega/rega.h"
+#endif
+#include "ui/inputbox.h"
+#include "ui/main.h"
+#include "ui/menu.h"
+#include "apps/scanner/scanner_ui.h"
+#include "apps/scanner/scanner_ui.h"
+#include "apps/launcher/launcher.h"
+#include "apps/memories/memories.h"
+#include "apps/sysinfo/sysinfo.h"
+#ifdef ENABLE_EEPROM_HEXDUMP
+    #include "hexdump.h"
+#endif
+#ifdef ENABLE_CW_KEYER
+    #include "features/cw/cw_ui.h"
+#endif
+#ifdef ENABLE_MESH_NETWORK
+    #include "apps/hermes/ui/hermes_ui.h"
+#endif
+#include "ui/ui.h"
+#include "core/misc.h"
+
+GUI_DisplayType_t gScreenToDisplay;
+GUI_DisplayType_t gRequestDisplayScreen = DISPLAY_INVALID;
+
+uint8_t           gAskForConfirmation;
+bool              gAskToSave;
+bool              gAskToDelete;
+
+
+void (*UI_DisplayFunctions[])(void) = {
+    [DISPLAY_MAIN] = &UI_DisplayMain,
+    [DISPLAY_MENU] = &UI_DisplayMenu,
+    [DISPLAY_SCANNER] = &UI_DisplayScanner,
+
+#ifdef ENABLE_FMRADIO
+    [DISPLAY_FM] = &UI_DisplayFM,
+#endif
+
+#ifdef ENABLE_AIRCOPY
+    [DISPLAY_AIRCOPY] = &UI_DisplayAircopy,
+#endif
+
+#ifdef ENABLE_REGA
+    [DISPLAY_REGA] = &UI_DisplayREGA,
+#endif
+    [DISPLAY_LAUNCHER] = &UI_DisplayLauncher,
+    [DISPLAY_MEMORIES] = &MEMORIES_Render,
+    [DISPLAY_SYSINFO] = &SYSINFO_Render,
+#ifdef ENABLE_EEPROM_HEXDUMP
+    [DISPLAY_HEXDUMP] = &UI_DisplayHexDump, // We'll implement this wrapper in hexdump.c
+#endif
+#ifdef ENABLE_CW_KEYER
+    [DISPLAY_CW_KEYER] = &CW_UI_Render,
+#endif
+#ifdef ENABLE_MESH_NETWORK
+    [DISPLAY_NETWORK] = &HERMES_UI_Render,
+#endif
+};
+
+static_assert(ARRAY_SIZE(UI_DisplayFunctions) == DISPLAY_N_ELEM);
+
+void GUI_DisplayScreen(void)
+{
+    if (gScreenToDisplay != DISPLAY_INVALID) {
+        UI_DisplayFunctions[gScreenToDisplay]();
+    }
+}
+
+void GUI_SelectNextDisplay(GUI_DisplayType_t Display)
+{
+    if (Display == DISPLAY_INVALID)
+        return;
+
+    if (gScreenToDisplay != Display)
+    {
+        DTMF_clear_input_box();
+
+        gInputBoxIndex       = 0;
+        gIsInSubMenu         = false;
+        gCssBackgroundScan   = false;
+        gScanStateDir        = SCAN_OFF;
+        #ifdef ENABLE_FMRADIO
+            gFM_ScanState    = FM_SCAN_OFF;
+        #endif
+        gAskForConfirmation  = 0;
+        gAskToSave           = false;
+        gAskToDelete         = false;
+        gWasFKeyPressed      = false;
+
+        gUpdateStatus        = true;
+    }
+
+    gScreenToDisplay = Display;
+    gUpdateDisplay   = true;
+}
+
+bool UI_IsMenuMode(void)
+{
+    switch (gScreenToDisplay)
+    {
+        case DISPLAY_MENU:
+        case DISPLAY_LAUNCHER:
+        case DISPLAY_MEMORIES:
+        case DISPLAY_SYSINFO:
+            return true;
+        default:
+            return false;
+    }
+}
